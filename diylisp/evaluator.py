@@ -16,4 +16,47 @@ in a day, after all.)
 
 def evaluate(ast, env):
     """Evaluate an Abstract Syntax Tree in the specified environment."""
-    raise NotImplementedError("DIY")
+
+    if is_boolean(ast):
+      return ast
+    if is_integer(ast):
+      return ast
+    if is_list(ast):
+      name = ast[0]
+      fn   = forms[name] if name in forms else None
+
+      if fn:
+        return fn(ast[1:], env)
+      else:
+        raise NotImplementedError("Unrecognized symbol: %s" % ast[0])
+
+forms = {
+  "+"     : lambda ast, env: assert_int(ast[0], env) + assert_int(ast[1], env)
+, "-"     : lambda ast, env: assert_int(ast[0], env) - assert_int(ast[1], env)
+, "/"     : lambda ast, env: assert_int(ast[0], env) / assert_int(ast[1], env)
+, "*"     : lambda ast, env: assert_int(ast[0], env) * assert_int(ast[1], env)
+, ">"     : lambda ast, env: assert_int(ast[0], env) > assert_int(ast[1], env)
+, "mod"   : lambda ast, env: assert_int(ast[0], env) % assert_int(ast[1], env)
+, "eq"    : lambda ast, env: eq(ast[0], ast[1], env)
+, "atom"  : lambda ast, env: is_atom(evaluate(ast[0], env))
+, "quote" : lambda ast, env: ast[0]
+}
+
+def assert_int(x, env):
+  x = evaluate(x, env)
+
+  if is_integer(x):
+    return x
+  else:
+    raise LispError("Expected integer but got: %s" % x)
+
+def eq(a, b, env):
+  a = evaluate(a, env)
+  if not is_atom(a):
+    return False
+
+  b = evaluate(b, env)
+  if not is_atom(b):
+    return False
+
+  return a == b
