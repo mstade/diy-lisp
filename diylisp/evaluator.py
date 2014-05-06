@@ -28,7 +28,9 @@ def evaluate(ast, env):
       if fn:
         return fn(ast[1:], env)
       else:
-        raise NotImplementedError("Unrecognized symbol: %s" % ast[0])
+        raise LispError("Undefined function: %s" % ast[0])
+
+    return evaluate(env.lookup(ast), env)
 
 def math(op):
   def guard(ast, env):
@@ -69,15 +71,21 @@ def cond(ast, env):
   else:
     return evaluate(ast[2], env)
 
+def define(ast, env):
+  assert_valid_definition(ast)
+
+  env.set(ast[0], ast[1])
+
 forms = {
-  "+"     : math(lambda a, b: a + b)
-, "-"     : math(lambda a, b: a - b)
-, "/"     : math(lambda a, b: a / b)
-, "*"     : math(lambda a, b: a * b)
-, ">"     : math(lambda a, b: a > b)
-, "mod"   : math(lambda a, b: a % b)
-, "if"    : cond
-, "eq"    : eq
-, "atom"  : lambda ast, env: is_atom(evaluate(ast[0], env))
-, "quote" : lambda ast, env: ast[0]
+  "+"      : math(lambda a, b: a + b)
+, "-"      : math(lambda a, b: a - b)
+, "/"      : math(lambda a, b: a / b)
+, "*"      : math(lambda a, b: a * b)
+, ">"      : math(lambda a, b: a > b)
+, "mod"    : math(lambda a, b: a % b)
+, "if"     : cond
+, "eq"     : eq
+, "atom"   : lambda ast, env: is_atom(evaluate(ast[0], env))
+, "quote"  : lambda ast, env: ast[0]
+, "define" : define
 }
