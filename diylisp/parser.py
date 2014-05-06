@@ -3,6 +3,7 @@
 import re
 from ast import is_boolean, is_list
 from types import LispError
+from string import whitespace
 
 """
 This it the parser module, with the `parse` function which you'll implement as part 1 of
@@ -10,11 +11,27 @@ the workshop. It's job is to convert strings into data structures that the evalu
 understand. 
 """
 
-def parse(source):
+def parse(src):
     """Parse string representation of one *single* expression
     into the corresponding Abstract Syntax Tree."""
 
-    raise NotImplementedError("DIY")
+    exp, rest = first_expression(remove_comments(src.strip(whitespace)))
+
+    if len(rest) > 0: 
+        raise LispError("Expected EOF")
+
+    if exp == "#t":
+        return True
+    if exp == "#f":
+        return False
+    if exp.isdigit():
+        return int(exp)
+    if exp[0] == "'":
+        return ["quote", parse(exp[1:])]
+    if exp[0] == "(":
+        return [parse(part) for part in split_exps(exp[1:-1])]
+
+    return exp
 
 ##
 ## Below are a few useful utility functions. These should come in handy when 
@@ -53,7 +70,7 @@ def split_exps(source):
         ["foo", "bar", "(baz 123)"]
     """
 
-    rest = source.strip()
+    rest = source.strip(whitespace)
     exps = []
     while rest:
         exp, rest = first_expression(rest)
@@ -65,7 +82,7 @@ def first_expression(source):
     first expression in the string and rest is the 
     rest of the string after this expression."""
     
-    source = source.strip()
+    source = source.strip(whitespace)
     if source[0] == "'":
         exp, rest = first_expression(source[1:])
         return source[0] + exp, rest
