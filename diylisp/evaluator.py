@@ -30,17 +30,15 @@ def evaluate(ast, env):
       else:
         raise NotImplementedError("Unrecognized symbol: %s" % ast[0])
 
-forms = {
-  "+"     : lambda ast, env: assert_int(ast[0], env) + assert_int(ast[1], env)
-, "-"     : lambda ast, env: assert_int(ast[0], env) - assert_int(ast[1], env)
-, "/"     : lambda ast, env: assert_int(ast[0], env) / assert_int(ast[1], env)
-, "*"     : lambda ast, env: assert_int(ast[0], env) * assert_int(ast[1], env)
-, ">"     : lambda ast, env: assert_int(ast[0], env) > assert_int(ast[1], env)
-, "mod"   : lambda ast, env: assert_int(ast[0], env) % assert_int(ast[1], env)
-, "eq"    : lambda ast, env: eq(ast[0], ast[1], env)
-, "atom"  : lambda ast, env: is_atom(evaluate(ast[0], env))
-, "quote" : lambda ast, env: ast[0]
-}
+def math(op):
+  def guard(ast, env):
+    assert_exp_length(ast, 2)
+    a = assert_int(ast[0], env)
+    b = assert_int(ast[1], env)
+
+    return op(a, b)
+
+  return guard
 
 def assert_int(x, env):
   x = evaluate(x, env)
@@ -50,13 +48,36 @@ def assert_int(x, env):
   else:
     raise LispError("Expected integer but got: %s" % x)
 
-def eq(a, b, env):
-  a = evaluate(a, env)
+def eq(ast, env):
+  assert_exp_length(ast, 2)
+  
+  a = evaluate(ast[0], env)
   if not is_atom(a):
     return False
 
-  b = evaluate(b, env)
+  b = evaluate(ast[1], env)
   if not is_atom(b):
     return False
 
   return a == b
+
+def cond(ast, env):
+  assert_exp_length(ast, 3)
+
+  if evaluate(ast[0], env):
+    return evaluate(ast[1], env)
+  else:
+    return evaluate(ast[2], env)
+
+forms = {
+  "+"     : math(lambda a, b: a + b)
+, "-"     : math(lambda a, b: a - b)
+, "/"     : math(lambda a, b: a / b)
+, "*"     : math(lambda a, b: a * b)
+, ">"     : math(lambda a, b: a > b)
+, "mod"   : math(lambda a, b: a % b)
+, "if"    : cond
+, "eq"    : eq
+, "atom"  : lambda ast, env: is_atom(evaluate(ast[0], env))
+, "quote" : lambda ast, env: ast[0]
+}
