@@ -1,8 +1,108 @@
 ;; Some logical operators.
 
 (define not
-    (lambda (b)
-        (if b #f #t)))
+  (lambda (b)
+    (if b #f 
+          #t)))
 
-;; DIY -- Implement the rest of your standard library
-;; here as part 7 of the workshop.
+(define or
+  (lambda (a b)
+    (if a
+        a
+        b)))
+
+(define and
+  (lambda (a b)
+    (if a
+        (if b
+            b
+            #f)
+        #f)))
+
+(define xor
+  (lambda (a b)
+    (not (eq a b))))
+
+;; Comparison operators
+(define >=
+  (lambda (a b)
+    (or (>  a b)
+        (eq a b))))
+
+(define <=
+  (lambda (a b)
+    (not (> a b))))
+
+(define <
+  (lambda (a b)
+    (not (or (>  a b)
+             (eq a b)))))
+
+;; List functions
+(define foldl
+  (lambda (fn acc coll)
+    (if (empty coll)
+        acc
+        (foldl fn (fn acc (head coll)) (tail coll)))))
+
+(define sum
+  (lambda (coll)
+    (foldl + 0 coll)))
+
+(define length
+  (lambda (coll)
+    (foldl
+      (lambda (acc _) (+ acc 1))
+      0 coll)))
+
+(define append
+  (lambda (a b)
+    (if (empty a)
+        b
+        (cons (head a)
+              (append (tail a) b)))))
+
+(define filter
+  (lambda (pred coll)
+    (reverse
+      (foldl
+        (lambda (matches x)
+          (if (pred x)
+              (cons x matches)
+              matches))
+          '() coll))))
+
+(define map
+  (lambda (fn coll)
+    (reverse
+      (foldl
+        (lambda (mapped x)
+          (cons (fn x) mapped))
+        '() coll))))
+
+(define reverse
+    (lambda (coll)
+        (foldl (lambda (rev x) (cons x rev)) '() coll)))
+
+(define range
+    (lambda (start end)
+      (if (> start end)
+          '()
+          (cons start (range (+ start 1) end)))))
+
+(define smaller-or-equal
+  (lambda (lst pivot)
+    (filter (lambda (x) (<= x pivot)) lst)))
+
+(define larger
+  (lambda (lst pivot)
+    (filter (lambda (x) (> x pivot)) lst)))
+
+(define sort
+  (lambda (lst)
+    (if (empty lst)
+        lst
+        (append
+          (append (sort (smaller-or-equal (tail lst) (head lst)))
+                        (cons (head lst) '()))
+          (sort (larger lst (head lst)))))))

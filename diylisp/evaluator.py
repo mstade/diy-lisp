@@ -2,7 +2,7 @@
 
 from types import Environment, LispError, Closure
 from ast import is_boolean, is_atom, is_symbol, is_list, is_closure, is_integer
-from asserts import assert_exp_length, assert_valid_definition, assert_boolean
+from asserts import assert_exp_length, assert_valid_definition, assert_symbol
 from parser import unparse
 
 """
@@ -18,22 +18,25 @@ def evaluate(ast, env):
     """Evaluate an Abstract Syntax Tree in the specified environment."""
 
     if is_atom(ast):
-      return env.lookup(ast) if is_symbol(ast) else ast
-    else:
-      val = ast[0]
-
-      if is_symbol(val):
-        if val in forms:
-          return forms[val](ast[1:], env)
-        else:
-          val = env.lookup(val)
-
-      if is_closure(val):
-        return apply(val, ast[1:], env)
-      elif is_list(val):
-        return evaluate([evaluate(val, env)] + ast[1:], env)
+      if is_symbol(ast):
+        return forms[ast] if ast in forms else env.lookup(ast)
       else:
-        raise LispError("%s is not a function." % unparse(val))
+        return ast
+    else:
+      if (len(ast) == 0):
+        return []
+
+      fn   = evaluate(ast[0], env)
+      args = ast[1:] if len(ast) > 1 else []
+
+      if callable(fn):
+        return fn(args, env)
+      if is_closure(fn):
+        return apply(fn, args, env)
+      elif is_list(fn):
+        return evaluate([evaluate(fn, env)] + args, env)
+      else:
+        raise LispError("%s is not a function." % unparse(fn))
 
 def math(op):
   def guard(ast, env):
@@ -147,6 +150,21 @@ def assert_list(rest, env):
   else:
     raise LispError("Expected list, got: %s" % unparse(rest))
 
+def source(ast, env):
+  assert_exp_length(ast, 1)
+  symbol = ast[0]
+  assert_symbol(symbol)
+
+  if symbol in forms:
+    return "<form/%s>" % symbol
+  else:
+    val = env.lookup(symbol)
+
+    if is_closure(val):
+      return "(lambda %s %s)" % (unparse(val.params), unparse(val.body))
+    else:
+      return val
+
 forms = {
   "+"      : math(lambda a, b: a + b)
 , "-"      : math(lambda a, b: a - b)
@@ -162,6 +180,7 @@ forms = {
 , "empty"  : empty
 , "atom"   : lambda ast, env: is_atom(evaluate(ast[0], env))
 , "quote"  : lambda ast, env: ast[0]
+, "source" : source
 , "lambda" : fn
 , "define" : defn
 }

@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from types import LispError
+from parser import unparse
+from ast import is_boolean, is_symbol
 
 def assert_exp_length(ast, length):
     if len(ast) > length:
-        msg = "Malformed %s, too many arguments: %s" % (ast[0], unparse(ast))
+        msg = "Malformed call, too many arguments: %s" % unparse(ast)
         raise LispError(msg)
     elif len(ast) < length:
-        msg = "Malformed %s, too few arguments: %s" % (ast[0], unparse(ast))
+        msg = "Malformed call, too few arguments: %s" % unparse(ast)
         raise LispError(msg)
 
 def assert_valid_definition(d):
@@ -23,4 +25,11 @@ def assert_boolean(p, exp=None):
         msg = "Boolean required, got '%s'. " % unparse(p)
         if exp is not None:
             msg += "Offending expression: %s" % unparse(exp)
-        raise LispTypeError(msg)
+        raise LispError(msg)
+
+def assert_symbol(p, exp=None):
+    if not is_symbol(p):
+        msg = "Symbol required, got '%s'. " % unparse(p)
+        if exp is not None:
+            msg += "Offending expression: %s" % unparse(exp)
+        raise LispError(msg)

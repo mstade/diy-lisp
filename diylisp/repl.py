@@ -2,6 +2,7 @@
 
 import os
 import sys
+import traceback
 from os.path import dirname, relpath, join
 
 from types import LispError, Environment
@@ -42,6 +43,7 @@ def repl():
         except Exception, e:
             print colored("! ", "red") + faded("The Python is showing through…")
             print faded("  " + str(e.__class__.__name__) + ":"),
+            print faded("  " + traceback.format_exc())
             print str(e)
 
 def read_expression():
