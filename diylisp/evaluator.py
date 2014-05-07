@@ -106,6 +106,47 @@ def apply(closure, args, env):
 
   return evaluate(closure.body, closure.env.extend(variables))
 
+def cons(ast, env):
+  assert_exp_length(ast, 2)
+
+  first = evaluate(ast[0], env)
+  rest  = assert_list(ast[1], env)
+
+  return [first] + rest
+
+
+def head(ast, env):
+  assert_exp_length(ast, 1)
+  rest = assert_list(ast[0], env)
+
+  if len(rest) > 0:
+    return rest[0]
+  else:
+    raise LispError("Can't get head of empty list.")
+
+def tail(ast, env):
+  assert_exp_length(ast, 1)
+  rest = assert_list(ast[0], env)
+
+  if len(rest) > 1:
+    return rest[1:]
+  else:
+    return []
+
+def empty(ast, env):
+  assert_exp_length(ast, 1)
+  rest = assert_list(ast[0], env)
+
+  return len(rest) == 0
+
+def assert_list(rest, env):
+  rest = evaluate(rest, env)
+
+  if is_list(rest):
+    return rest
+  else:
+    raise LispError("Expected list, got: %s" % unparse(rest))
+
 forms = {
   "+"      : math(lambda a, b: a + b)
 , "-"      : math(lambda a, b: a - b)
@@ -115,6 +156,10 @@ forms = {
 , "mod"    : math(lambda a, b: a % b)
 , "if"     : cond
 , "eq"     : eq
+, "cons"   : cons
+, "head"   : head
+, "tail"   : tail
+, "empty"  : empty
 , "atom"   : lambda ast, env: is_atom(evaluate(ast[0], env))
 , "quote"  : lambda ast, env: ast[0]
 , "lambda" : fn
