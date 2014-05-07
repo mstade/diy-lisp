@@ -17,20 +17,23 @@ in a day, after all.)
 def evaluate(ast, env):
     """Evaluate an Abstract Syntax Tree in the specified environment."""
 
-    if is_boolean(ast):
-      return ast
-    if is_integer(ast):
-      return ast
-    if is_list(ast):
-      name = ast[0]
-      fn   = forms[name] if name in forms else None
+    if is_atom(ast):
+      return env.lookup(ast) if is_symbol(ast) else ast
+    else:
+      val = ast[0]
 
-      if fn:
-        return fn(ast[1:], env)
+      if is_symbol(val):
+        if val in forms:
+          return forms[val](ast[1:], env)
+        else:
+          val = env.lookup(val)
+
+      if is_closure(val):
+        return apply(val, ast[1:], env)
+      elif is_list(val):
+        return evaluate([evaluate(val, env)] + ast[1:], env)
       else:
-        raise LispError("Undefined function: %s" % ast[0])
-
-    return evaluate(env.lookup(ast), env)
+        raise LispError("%s is not a function." % unparse(val))
 
 def math(op):
   def guard(ast, env):
@@ -71,10 +74,37 @@ def cond(ast, env):
   else:
     return evaluate(ast[2], env)
 
-def define(ast, env):
+def defn(ast, env):
   assert_valid_definition(ast)
+  env.set(ast[0], evaluate(ast[1], env))
 
-  env.set(ast[0], ast[1])
+def fn(ast, env):
+  if len(ast) != 2:
+      raise LispError("Wrong number of arguments for function definition: %s" % len(ast))
+
+  params = ast[0]
+
+  if not isinstance(params, list):
+      raise LispError("Parameters must be a list, got: %s" % unparse(params))
+  else:
+    for p in params:
+      if not isinstance(p, str):
+        raise LispError("Parameter must be a symbol, got: %s" % unparse(p))
+
+  body = ast[1]
+
+  return Closure(env, params, body)
+
+def apply(closure, args, env):
+  variables = {}
+
+  if len(args) != len(closure.params):
+    raise LispError("wrong number of arguments, expected %s got %s" % (len(closure.params), len(args)))
+
+  for i, key in enumerate(closure.params):
+    variables[key] = evaluate(args[i], env)
+
+  return evaluate(closure.body, closure.env.extend(variables))
 
 forms = {
   "+"      : math(lambda a, b: a + b)
@@ -87,5 +117,6 @@ forms = {
 , "eq"     : eq
 , "atom"   : lambda ast, env: is_atom(evaluate(ast[0], env))
 , "quote"  : lambda ast, env: ast[0]
-, "define" : define
+, "lambda" : fn
+, "define" : defn
 }
